@@ -1,0 +1,1002 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AutoParts BST</title>
+  <style>
+:root {
+  --bg: #f4f5f7;
+  --surface: #ffffff;
+  --surface-2: #f8f9fb;
+  --border: #e2e5ea;
+  --text: #1c2230;
+  --muted: #667085;
+  --accent: #e8590c;
+  --accent-soft: #fff1e8;
+  --root: #f5b301;
+  --root-soft: #fff6d6;
+  --branch: #2f6fde;
+  --branch-soft: #e6efff;
+  --leaf: #1f9d55;
+  --leaf-soft: #e3f6eb;
+  --low: #d63c3c;
+  --low-soft: #fdecec;
+  --path: #e8590c;
+  --edge: #b7bec9;
+  --radius: 10px;
+  --shadow: 0 1px 2px rgba(16, 24, 40, .06), 0 1px 3px rgba(16, 24, 40, .08);
+  --mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+h1, h2, h3 { margin: 0; }
+h2 { font-size: 15px; margin-bottom: 12px; }
+h3 { font-size: 13px; margin-bottom: 8px; color: var(--muted); font-weight: 600; }
+hr { border: 0; border-top: 1px solid var(--border); margin: 16px 0; }
+.mono { font-family: var(--mono); }
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 18px 28px;
+  background: #1c2230;
+  color: #fff;
+  border-bottom: 4px solid var(--accent);
+}
+.topbar h1 { font-size: 22px; letter-spacing: .3px; }
+.topbar p { margin: 2px 0 0; color: #c3c9d4; }
+.topbar-actions { display: flex; gap: 8px; }
+.topbar .btn.ghost { color: #fff; border-color: #4a5468; }
+.topbar .btn.ghost:hover { background: #2b3445; }
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+  padding: 20px 28px 0;
+}
+.stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.stat-label { color: var(--muted); font-size: 12px; }
+.stat-value { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stat.warn .stat-value { color: var(--low); }
+
+.layout {
+  display: grid;
+  grid-template-columns: 340px minmax(0, 1fr);
+  gap: 20px;
+  padding: 20px 28px 32px;
+  align-items: start;
+}
+.sidebar { display: flex; flex-direction: column; gap: 16px; }
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: var(--shadow);
+}
+
+.form { display: flex; flex-direction: column; gap: 10px; }
+.form label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); font-weight: 600; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.form-actions { display: flex; gap: 8px; margin-top: 4px; }
+.form .check { flex-direction: row; align-items: center; gap: 8px; color: var(--text); font-weight: 500; }
+input, select {
+  font: inherit;
+  color: var(--text);
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  width: 100%;
+  min-width: 0;
+}
+input:focus, select:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+input[type="checkbox"] { width: auto; }
+.hint { margin: 0; font-size: 12px; color: var(--muted); }
+
+.search-row { display: flex; gap: 8px; }
+.search-row input { flex: 1; }
+
+.btn {
+  font: inherit;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn:hover { background: var(--surface-2); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; flex: 1; }
+.btn.primary:hover { filter: brightness(.95); }
+.btn.ghost { background: transparent; }
+.btn.danger { color: var(--low); border-color: #f2c4c4; }
+.btn.danger:hover { background: var(--low-soft); }
+.btn.small { padding: 4px 10px; font-size: 12px; }
+
+.search-result { margin-top: 12px; font-size: 13px; }
+.search-result .path { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 6px 0; }
+.search-result .path code { background: var(--accent-soft); color: var(--accent); padding: 2px 6px; border-radius: 4px; font-family: var(--mono); font-size: 12px; }
+.search-result ul { list-style: none; padding: 0; margin: 8px 0 0; display: flex; flex-direction: column; gap: 6px; }
+.search-result li { padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; }
+.search-result li:hover { background: var(--surface-2); }
+.search-result .meta { color: var(--muted); font-size: 12px; }
+.found { color: var(--leaf); font-weight: 600; }
+.notfound { color: var(--low); font-weight: 600; }
+
+.content { min-width: 0; }
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 16px; overflow-x: auto; }
+.tab {
+  font: inherit;
+  font-weight: 600;
+  padding: 10px 16px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -1px;
+  white-space: nowrap;
+}
+.tab.active { color: var(--text); border-bottom-color: var(--accent); }
+.badge { background: var(--border); color: var(--text); border-radius: 999px; padding: 1px 8px; font-size: 11px; margin-left: 4px; }
+.panel { display: none; }
+.panel.active { display: block; }
+.panel-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.panel-head p { margin: 0; color: var(--muted); }
+
+.legend { display: flex; gap: 14px; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
+.legend span { display: flex; align-items: center; gap: 6px; }
+.dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; border: 2px solid; }
+.dot.root { background: var(--root-soft); border-color: var(--root); }
+.dot.branch { background: var(--branch-soft); border-color: var(--branch); }
+.dot.leaf { background: var(--leaf-soft); border-color: var(--leaf); }
+.dot.low { background: var(--low); border-color: var(--low); width: 8px; height: 8px; }
+
+.tree-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: auto;
+  padding: 12px;
+  min-height: 200px;
+}
+#tree-svg { display: block; margin: 0 auto; }
+.empty { text-align: center; color: var(--muted); padding: 60px 0; margin: 0; }
+
+.edge { stroke: var(--edge); stroke-width: 2; fill: none; transition: stroke .2s; }
+.edge.on-path { stroke: var(--path); stroke-width: 3; }
+.edge-label { font-size: 10px; fill: var(--muted); }
+
+.tnode { cursor: pointer; }
+.tnode rect { stroke-width: 2; transition: transform .2s, stroke-width .2s; }
+.tnode.root rect { fill: var(--root-soft); stroke: var(--root); }
+.tnode.branch rect { fill: var(--branch-soft); stroke: var(--branch); }
+.tnode.leaf rect { fill: var(--leaf-soft); stroke: var(--leaf); }
+.tnode .code { font-family: var(--mono); font-weight: 700; font-size: 12px; fill: var(--text); }
+.tnode .name { font-size: 10px; fill: var(--muted); }
+.tnode .low-dot { fill: var(--low); }
+.tnode:hover rect { stroke-width: 3; }
+.tnode.selected rect { stroke: var(--text); stroke-width: 3; }
+.tnode.on-path rect { stroke: var(--path); stroke-width: 4; }
+.tnode.flash rect { fill: var(--accent); }
+.tnode.flash .code, .tnode.flash .name { fill: #fff; }
+.tnode.dim { opacity: .3; }
+
+.detail { margin-top: 16px; }
+.detail-head { display: flex; justify-content: space-between; align-items: start; gap: 12px; flex-wrap: wrap; }
+.detail-head h2 { margin-bottom: 2px; }
+.detail-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px 20px; margin-top: 14px; }
+.detail-grid div span { display: block; font-size: 12px; color: var(--muted); }
+.detail-grid div strong { font-variant-numeric: tabular-nums; }
+.pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+.pill.root { background: var(--root-soft); color: #8a6400; }
+.pill.branch { background: var(--branch-soft); color: var(--branch); }
+.pill.leaf { background: var(--leaf-soft); color: var(--leaf); }
+.pill.low { background: var(--low-soft); color: var(--low); }
+
+.mini-stats { display: flex; gap: 16px; font-size: 13px; color: var(--muted); }
+.mini-stats strong { color: var(--text); }
+.assembly {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 16px 20px;
+}
+.assembly ul { list-style: none; margin: 0; padding-left: 22px; border-left: 2px solid var(--border); }
+.assembly > ul { padding-left: 0; border-left: 0; }
+.assembly li { margin: 6px 0; position: relative; }
+.assembly ul ul li::before {
+  content: ""; position: absolute; left: -22px; top: 16px; width: 18px; border-top: 2px solid var(--border);
+}
+.a-node { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 8px; flex-wrap: wrap; }
+.a-node.vehicle { background: var(--root-soft); font-weight: 700; font-size: 15px; }
+.a-node.system { background: var(--branch-soft); font-weight: 600; cursor: pointer; user-select: none; }
+.a-node.part { background: var(--leaf-soft); cursor: pointer; }
+.a-node .grow { flex: 1; }
+.a-node .meta { color: var(--muted); font-size: 12px; font-weight: 400; }
+.a-node code { font-family: var(--mono); font-size: 12px; }
+.caret { display: inline-block; width: 12px; transition: transform .15s; }
+li.collapsed > .a-node .caret { transform: rotate(-90deg); }
+li.collapsed > ul { display: none; }
+
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface); }
+.seg-btn { font: inherit; font-weight: 600; padding: 8px 14px; border: 0; background: none; cursor: pointer; color: var(--muted); border-right: 1px solid var(--border); }
+.seg-btn:last-child { border-right: 0; }
+.seg-btn.active { background: var(--text); color: #fff; }
+.traversal-desc { color: var(--muted); margin: 0 0 12px; }
+.sequence { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 8px; counter-reset: seq; }
+.sequence li {
+  counter-increment: seq;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  min-width: 130px;
+}
+.sequence li::before { content: counter(seq); font-size: 11px; color: var(--muted); }
+.sequence li code { font-family: var(--mono); font-weight: 700; }
+.sequence li span { font-size: 12px; color: var(--muted); }
+
+.table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow-x: auto; }
+.table { width: 100%; border-collapse: collapse; }
+.table th, .table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.table th { font-size: 12px; color: var(--muted); background: var(--surface-2); font-weight: 600; }
+.table tr:last-child td { border-bottom: 0; }
+.table tbody tr:hover { background: var(--surface-2); }
+.table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.table td.low { color: var(--low); font-weight: 700; }
+.table td code { font-family: var(--mono); font-weight: 600; }
+.table .actions { display: flex; gap: 6px; justify-content: flex-end; }
+
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--text);
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .2);
+  z-index: 10;
+  max-width: calc(100% - 32px);
+}
+.toast.error { background: var(--low); }
+
+@media (max-width: 1100px) {
+  .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .layout { grid-template-columns: minmax(0, 1fr); }
+  .detail-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 600px) {
+  .topbar, .stats, .layout { padding-left: 16px; padding-right: 16px; }
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stat-value { font-size: 18px; }
+}
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <h1>AutoParts BST</h1>
+      <p>Component tree of the <strong>{{ vehicle }}</strong> · Data Structures — Trees</p>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn ghost" id="btn-balance" title="Rebuilds the tree using the middle element as root">Balance tree</button>
+      <button class="btn ghost" id="btn-reset">Restore sample</button>
+    </div>
+  </header>
+
+  <section class="stats" id="stats">
+    <div class="stat"><span class="stat-label">Weight (nodes)</span><span class="stat-value" id="st-weight">–</span></div>
+    <div class="stat"><span class="stat-label">Height (levels)</span><span class="stat-value" id="st-height">–</span></div>
+    <div class="stat"><span class="stat-label">Leaves</span><span class="stat-value" id="st-leaves">–</span></div>
+    <div class="stat"><span class="stat-label">Root</span><span class="stat-value mono" id="st-root">–</span></div>
+    <div class="stat"><span class="stat-label">Inventory value</span><span class="stat-value" id="st-value">–</span></div>
+    <div class="stat warn"><span class="stat-label">Low stock (≤ <span id="st-threshold">5</span>)</span><span class="stat-value" id="st-low">–</span></div>
+  </section>
+
+  <main class="layout">
+    <aside class="sidebar">
+      <section class="card">
+        <h2>Search part</h2>
+        <form id="search-form" class="search-row">
+          <input type="search" id="search-input" placeholder="Code (ENG-402) or name (spark plug)" autocomplete="off">
+          <button class="btn" type="submit">Search</button>
+        </form>
+        <div id="search-result" class="search-result" hidden></div>
+      </section>
+
+      <section class="card">
+        <h2 id="form-title">Add part</h2>
+        <form id="part-form" class="form" autocomplete="off">
+          <label>Part code
+            <input name="code" required placeholder="BRK-204" class="mono" maxlength="13">
+          </label>
+          <label>Name
+            <input name="name" required placeholder="Rear brake pads">
+          </label>
+          <label>System
+            <select name="system" required>
+              {% for s in systems %}<option>{{ s }}</option>{% endfor %}
+            </select>
+          </label>
+          <div class="form-row">
+            <label>Stock
+              <input name="stock" type="number" min="0" step="1" required value="10">
+            </label>
+            <label>Cost (COP)
+              <input name="cost" type="number" min="0" step="any" required placeholder="120000">
+            </label>
+          </div>
+          <label>Supplier
+            <input name="supplier" required placeholder="Andean Brakes" list="suppliers">
+            <datalist id="suppliers"></datalist>
+          </label>
+          <div class="form-actions">
+            <button class="btn primary" type="submit" id="form-submit">Insert into tree</button>
+            <button class="btn ghost" type="button" id="form-cancel" hidden>Cancel</button>
+          </div>
+          <p class="hint">If the code already exists, the part is updated (like the phonebook example from class).</p>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Filter</h2>
+        <form id="filter-form" class="form">
+          <label>System
+            <select name="system">
+              <option value="">All</option>
+              {% for s in systems %}<option>{{ s }}</option>{% endfor %}
+            </select>
+          </label>
+          <label>Supplier
+            <input name="supplier" placeholder="Contains…" list="suppliers">
+          </label>
+          <div class="form-row">
+            <label>Min cost
+              <input name="min_cost" type="number" min="0" step="any">
+            </label>
+            <label>Max cost
+              <input name="max_cost" type="number" min="0" step="any">
+            </label>
+          </div>
+          <label class="check"><input type="checkbox" name="low_stock"> Low stock only</label>
+          <div class="form-actions">
+            <button class="btn" type="submit">Apply</button>
+            <button class="btn ghost" type="reset">Clear</button>
+          </div>
+        </form>
+        <hr>
+        <h3>Code range</h3>
+        <form id="range-form" class="search-row">
+          <input name="from" placeholder="BRK-000" class="mono">
+          <input name="to" placeholder="ENG-999" class="mono">
+          <button class="btn" type="submit">Show</button>
+        </form>
+      </section>
+    </aside>
+
+    <section class="content">
+      <nav class="tabs" role="tablist">
+        <button class="tab active" data-tab="bst">BST</button>
+        <button class="tab" data-tab="assembly">Assembly</button>
+        <button class="tab" data-tab="traversal">Traversals</button>
+        <button class="tab" data-tab="inventory">Inventory <span class="badge" id="inv-count"></span></button>
+      </nav>
+
+      <div class="panel active" id="tab-bst">
+        <div class="panel-head">
+          <p>Ordered by <strong>part code</strong>: smaller codes to the left, larger to the right. Click a node to see its details.</p>
+          <div class="legend">
+            <span><i class="dot root"></i>Root</span>
+            <span><i class="dot branch"></i>Branch</span>
+            <span><i class="dot leaf"></i>Leaf</span>
+            <span><i class="dot low"></i>Low stock</span>
+          </div>
+        </div>
+        <div class="tree-wrap" id="tree-wrap">
+          <svg id="tree-svg" role="img" aria-label="Binary search tree of auto parts"></svg>
+          <p class="empty" id="tree-empty" hidden>The tree is empty. Add a part to create the root.</p>
+        </div>
+        <div class="detail card" id="detail" hidden></div>
+      </div>
+
+      <div class="panel" id="tab-assembly">
+        <div class="panel-head">
+          <p><strong>N-ary</strong> hierarchical view: vehicle → main systems → parts. Built by traversing the BST in-order.</p>
+          <div class="mini-stats" id="assembly-stats"></div>
+        </div>
+        <div id="assembly-tree" class="assembly"></div>
+      </div>
+
+      <div class="panel" id="tab-traversal">
+        <div class="panel-head">
+          <div class="seg" id="traversal-buttons">
+            <button class="seg-btn active" data-kind="inorder">In-order ↑</button>
+            <button class="seg-btn" data-kind="inorder_desc">In-order ↓</button>
+            <button class="seg-btn" data-kind="preorder">Pre-order</button>
+            <button class="seg-btn" data-kind="postorder">Post-order</button>
+          </div>
+          <button class="btn ghost" id="btn-animate">Animate on tree</button>
+        </div>
+        <p class="traversal-desc" id="traversal-desc"></p>
+        <ol class="sequence" id="traversal-seq"></ol>
+      </div>
+
+      <div class="panel" id="tab-inventory">
+        <div class="panel-head">
+          <p id="inventory-caption">Full in-order traversal (sorted by code).</p>
+          <button class="btn ghost" id="btn-clear-filter" hidden>Clear filter</button>
+        </div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr><th>Code</th><th>Part</th><th>System</th><th class="num">Stock</th><th class="num">Cost</th><th>Supplier</th><th></th></tr>
+            </thead>
+            <tbody id="inventory-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" hidden></div>
+
+  <script>
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => document.querySelectorAll(sel);
+
+const NODE_W = 112;
+const NODE_H = 42;
+const COL_W = NODE_W + 14;
+const LEVEL_H = 86;
+const PAD = 20;
+const STEP_MS = 450;
+
+const money = new Intl.NumberFormat("en-US", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
+
+const TRAVERSAL_TEXT = {
+  inorder: "Left → Root → Right. Like the sorting example from class: returns the parts sorted from smallest to largest code.",
+  inorder_desc: "Right → Root → Left. Same traversal in descending order.",
+  preorder: "Root → Left → Right. Visits the parent first; this is the order used to save the tree to JSON so it rebuilds with the same shape.",
+  postorder: "Left → Right → Root. Visits children before their parent (useful to disassemble starting from the leaves).",
+};
+
+let state = { tree: null, stats: null, inorder: [] };
+let selectedCode = null;
+let editingCode = null;
+let currentTraversal = "inorder";
+let animationTimers = [];
+
+function esc(text) {
+  return String(text ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+function shorten(text, max) {
+  return text.length > max ? text.slice(0, max - 1) + "…" : text;
+}
+
+function plural(count, word) {
+  return `${count} ${word}${count === 1 ? "" : "s"}`;
+}
+
+async function api(method, url, body) {
+  const options = { method, headers: {} };
+  if (body !== undefined) {
+    options.headers["Content-Type"] = "application/json";
+    options.body = JSON.stringify(body);
+  }
+  const res = await fetch(url, options);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
+  return data;
+}
+
+let toastTimer;
+function toast(message, isError = false) {
+  const el = $("#toast");
+  el.textContent = message;
+  el.classList.toggle("error", isError);
+  el.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => (el.hidden = true), 3200);
+}
+
+function showTab(name) {
+  $$(".tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === name));
+  $$(".panel").forEach((p) => p.classList.toggle("active", p.id === `tab-${name}`));
+  if (name === "assembly") loadAssembly();
+  if (name === "traversal") loadTraversal(currentTraversal);
+}
+
+function applySnapshot(data) {
+  state = data;
+  renderStats(data.stats);
+  drawTree(data.tree);
+  renderInventory(data.inorder, null);
+  renderSuppliers(data.inorder);
+  if ($("#tab-traversal").classList.contains("active")) loadTraversal(currentTraversal);
+  if ($("#tab-assembly").classList.contains("active")) loadAssembly();
+  if (selectedCode && !data.inorder.some((p) => p.code === selectedCode)) closeDetail();
+  else if (selectedCode) showDetail(selectedCode, false);
+  if (data.message) toast(data.message);
+}
+
+function renderStats(s) {
+  $("#st-weight").textContent = s.weight;
+  $("#st-height").textContent = s.height;
+  $("#st-leaves").textContent = s.leaves;
+  $("#st-root").textContent = s.root || "—";
+  $("#st-value").textContent = money.format(s.inventory_value);
+  $("#st-value").title = money.format(s.inventory_value);
+  $("#st-low").textContent = s.low_stock;
+  $("#st-threshold").textContent = s.low_stock_threshold;
+  $("#inv-count").textContent = s.weight;
+}
+
+function renderSuppliers(parts) {
+  const names = [...new Set(parts.map((p) => p.supplier))].sort();
+  $("#suppliers").innerHTML = names.map((n) => `<option value="${esc(n)}">`).join("");
+}
+
+function layoutTree(root) {
+  const nodes = [];
+  const lastX = [];
+
+  const shift = (node, dx) => {
+    if (!node) return;
+    node._col += dx;
+    lastX[node.level] = Math.max(lastX[node.level] ?? -Infinity, node._col);
+    shift(node.left, dx);
+    shift(node.right, dx);
+  };
+
+  (function place(node, parent) {
+    if (!node) return;
+    node._parent = parent;
+    place(node.left, node);
+    place(node.right, node);
+
+    if (node.left && node.right) node._col = (node.left._col + node.right._col) / 2;
+    else if (node.left) node._col = node.left._col + 0.5;
+    else if (node.right) node._col = node.right._col - 0.5;
+    else node._col = Math.max(-1, ...lastX.slice(node.level).filter((v) => v !== undefined)) + 1;
+
+    const min = (lastX[node.level] ?? -Infinity) + 1;
+    if (node._col < min) shift(node, min - node._col);
+    lastX[node.level] = Math.max(lastX[node.level] ?? -Infinity, node._col);
+    nodes.push(node);
+  })(root, null);
+
+  const minCol = Math.min(...nodes.map((n) => n._col));
+  for (const n of nodes) {
+    n._x = PAD + (n._col - minCol) * COL_W + NODE_W / 2;
+    n._y = PAD + (n.level - 1) * LEVEL_H + NODE_H / 2;
+  }
+  return nodes;
+}
+
+function drawTree(root) {
+  const svg = $("#tree-svg");
+  $("#tree-empty").hidden = !!root;
+  svg.style.display = root ? "block" : "none";
+  if (!root) { svg.innerHTML = ""; return; }
+
+  const nodes = layoutTree(root);
+  const height = state.stats.height;
+  const width = PAD * 2 + Math.max(...nodes.map((n) => n._x)) + NODE_W / 2 - PAD;
+  const svgH = PAD * 2 + (height - 1) * LEVEL_H + NODE_H;
+  svg.setAttribute("viewBox", `0 0 ${width} ${svgH}`);
+  svg.style.width = "100%";
+  svg.style.height = "auto";
+  svg.style.maxWidth = `${width}px`;
+  svg.style.minWidth = `${Math.round(width * 0.7)}px`;
+
+  let edges = "";
+  let boxes = "";
+  for (const n of nodes) {
+    if (n._parent) {
+      const p = n._parent;
+      const side = p.left === n ? "<" : ">";
+      const mx = (p._x + n._x) / 2;
+      const my = (p._y + n._y) / 2;
+      edges += `<path class="edge" data-to="${esc(n.code)}" d="M${p._x},${p._y + NODE_H / 2} C${p._x},${my} ${n._x},${my} ${n._x},${n._y - NODE_H / 2}"/>`;
+      edges += `<text class="edge-label" x="${mx + (side === "<" ? -10 : 4)}" y="${my}">${side}</text>`;
+    }
+    const x = n._x - NODE_W / 2;
+    const y = n._y - NODE_H / 2;
+    boxes += `
+      <g class="tnode ${n.type}${n.code === selectedCode ? " selected" : ""}" data-code="${esc(n.code)}" tabindex="0">
+        <title>${esc(n.code)} · ${esc(n.name)} — level ${n.level}, degree ${n.degree}, stock ${n.stock}</title>
+        <rect x="${x}" y="${y}" width="${NODE_W}" height="${NODE_H}" rx="8"/>
+        <text class="code" x="${n._x}" y="${n._y - 3}" text-anchor="middle">${esc(n.code)}</text>
+        <text class="name" x="${n._x}" y="${n._y + 12}" text-anchor="middle">${esc(shorten(n.name, 18))}</text>
+        ${n.low_stock ? `<circle class="low-dot" cx="${x + NODE_W - 7}" cy="${y + 7}" r="4"/>` : ""}
+      </g>`;
+  }
+  svg.innerHTML = edges + boxes;
+
+  svg.querySelectorAll(".tnode").forEach((g) => {
+    const open = () => showDetail(g.dataset.code, true);
+    g.addEventListener("click", open);
+    g.addEventListener("keydown", (e) => { if (e.key === "Enter") open(); });
+  });
+}
+
+function clearHighlights() {
+  animationTimers.forEach(clearTimeout);
+  animationTimers = [];
+  $$("#tree-svg .on-path, #tree-svg .flash, #tree-svg .dim").forEach((el) => el.classList.remove("on-path", "flash", "dim"));
+}
+
+function nodeEl(code) {
+  return document.querySelector(`#tree-svg .tnode[data-code="${CSS.escape(code)}"]`);
+}
+
+function animatePath(path) {
+  clearHighlights();
+  path.forEach((code, i) => {
+    animationTimers.push(setTimeout(() => {
+      nodeEl(code)?.classList.add("on-path");
+      document.querySelector(`#tree-svg .edge[data-to="${CSS.escape(code)}"]`)?.classList.add("on-path");
+      if (i === path.length - 1) nodeEl(code)?.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" });
+    }, i * STEP_MS));
+  });
+}
+
+function animateSequence(codes) {
+  clearHighlights();
+  $$("#tree-svg .tnode").forEach((g) => g.classList.add("dim"));
+  codes.forEach((code, i) => {
+    animationTimers.push(setTimeout(() => {
+      const el = nodeEl(code);
+      if (!el) return;
+      el.classList.remove("dim");
+      el.classList.add("flash");
+      animationTimers.push(setTimeout(() => el.classList.remove("flash"), STEP_MS * 0.9));
+    }, i * STEP_MS));
+  });
+  animationTimers.push(setTimeout(clearHighlights, codes.length * STEP_MS + 400));
+}
+
+const TYPE_LABEL = { root: "Root node", branch: "Branch node", leaf: "Leaf node" };
+
+async function showDetail(code, animate) {
+  let p;
+  try {
+    p = await api("GET", `/api/parts/${encodeURIComponent(code)}`);
+  } catch (err) {
+    toast(err.message, true);
+    return;
+  }
+  selectedCode = code;
+  $$("#tree-svg .tnode").forEach((g) => g.classList.toggle("selected", g.dataset.code === code));
+  if (animate) animatePath(p.path);
+
+  const box = $("#detail");
+  box.hidden = false;
+  box.innerHTML = `
+    <div class="detail-head">
+      <div>
+        <h2><span class="mono">${esc(p.code)}</span> · ${esc(p.name)}</h2>
+        <span class="pill ${p.type}">${TYPE_LABEL[p.type]}</span>
+        ${p.low_stock ? `<span class="pill low">Low stock</span>` : ""}
+      </div>
+      <div class="form-actions">
+        <button class="btn small" id="detail-edit">Edit</button>
+        <button class="btn small danger" id="detail-delete">Delete</button>
+        <button class="btn small ghost" id="detail-close">Close</button>
+      </div>
+    </div>
+    <div class="detail-grid">
+      <div><span>System</span><strong>${esc(p.system)}</strong></div>
+      <div><span>Supplier</span><strong>${esc(p.supplier)}</strong></div>
+      <div><span>Stock</span><strong>${p.stock} units</strong></div>
+      <div><span>Unit cost</span><strong>${money.format(p.cost)}</strong></div>
+      <div><span>Level</span><strong>${p.level}</strong></div>
+      <div><span>Degree (children)</span><strong>${p.degree}</strong></div>
+      <div><span>Parent</span><strong class="mono">${esc(p.parent || "—")}</strong></div>
+      <div><span>Children (left / right)</span><strong class="mono">${esc(p.left || "—")} / ${esc(p.right || "—")}</strong></div>
+    </div>
+    <p class="hint" style="margin-top:12px">Path from the root: <span class="mono">${p.path.map(esc).join(" → ")}</span>
+      (${plural(p.path.length, "comparison")} out of ${state.stats.weight} parts)</p>`;
+
+  $("#detail-edit").onclick = () => startEdit(p);
+  $("#detail-delete").onclick = () => deletePart(p.code);
+  $("#detail-close").onclick = closeDetail;
+}
+
+function closeDetail() {
+  selectedCode = null;
+  $("#detail").hidden = true;
+  $$("#tree-svg .selected").forEach((g) => g.classList.remove("selected"));
+  clearHighlights();
+}
+
+function startEdit(part) {
+  const form = $("#part-form");
+  editingCode = part.code;
+  for (const field of ["code", "name", "system", "stock", "cost", "supplier"]) {
+    form.elements[field].value = part[field];
+  }
+  form.elements.code.readOnly = true;
+  $("#form-title").textContent = `Edit ${part.code}`;
+  $("#form-submit").textContent = "Save changes";
+  $("#form-cancel").hidden = false;
+  form.scrollIntoView({ behavior: "smooth", block: "center" });
+  form.elements.name.focus();
+}
+
+function resetForm() {
+  const form = $("#part-form");
+  form.reset();
+  form.elements.code.readOnly = false;
+  editingCode = null;
+  $("#form-title").textContent = "Add part";
+  $("#form-submit").textContent = "Insert into tree";
+  $("#form-cancel").hidden = true;
+}
+
+async function deletePart(code) {
+  if (!confirm(`Delete part ${code} from the tree?`)) return;
+  try {
+    applySnapshot(await api("DELETE", `/api/parts/${encodeURIComponent(code)}`));
+    if (editingCode === code) resetForm();
+  } catch (err) {
+    toast(err.message, true);
+  }
+}
+
+$("#part-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const body = Object.fromEntries(new FormData(e.target));
+  try {
+    const data = await api("POST", "/api/parts", body);
+    resetForm();
+    selectedCode = data.code;
+    showTab("bst");
+    applySnapshot(data);
+    animatePath(data.path);
+  } catch (err) {
+    toast(err.message, true);
+  }
+});
+$("#form-cancel").addEventListener("click", resetForm);
+$("#part-form").elements.code.addEventListener("input", (e) => {
+  e.target.value = e.target.value.toUpperCase();
+});
+
+$("#search-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const q = $("#search-input").value.trim();
+  const box = $("#search-result");
+  if (!q) { box.hidden = true; clearHighlights(); return; }
+
+  try {
+    const r = await api("GET", `/api/search?q=${encodeURIComponent(q)}`);
+    box.hidden = false;
+    showTab("bst");
+
+    if (r.mode === "code") {
+      const p = r.results[0];
+      box.innerHTML = `
+        <div class="found">✓ Found by code in ${plural(r.visited, "step")} (out of ${r.total} nodes)</div>
+        <div class="path">${r.path.map((c) => `<code>${esc(c)}</code>`).join("→")}</div>
+        <ul><li data-code="${esc(p.code)}"><strong class="mono">${esc(p.code)}</strong> ${esc(p.name)}
+          <div class="meta">${esc(p.system)} · stock ${p.stock} · ${money.format(p.cost)}</div></li></ul>`;
+      showDetail(p.code, true);
+    } else if (r.results.length) {
+      box.innerHTML = `
+        <div class="found">${plural(r.results.length, "match")} by name</div>
+        <p class="hint">The BST is ordered by code, not by name, so a name search has to visit all ${r.total} nodes.</p>
+        <ul>${r.results.map((p) => `<li data-code="${esc(p.code)}"><strong class="mono">${esc(p.code)}</strong> ${esc(p.name)}
+          <div class="meta">${esc(p.system)} · ${esc(p.supplier)} · stock ${p.stock}</div></li>`).join("")}</ul>`;
+      clearHighlights();
+      animateSequence(r.results.map((p) => p.code));
+    } else {
+      box.innerHTML = `
+        <div class="notfound">✗ "${esc(q)}" was not found</div>
+        ${r.path.length ? `<p class="hint">Path followed while searching for the code until reaching an empty child:</p>
+        <div class="path">${r.path.map((c) => `<code>${esc(c)}</code>`).join("→")}<code>∅</code></div>` : ""}`;
+      animatePath(r.path);
+    }
+
+    box.querySelectorAll("li[data-code]").forEach((li) =>
+      li.addEventListener("click", () => { showTab("bst"); showDetail(li.dataset.code, true); }));
+  } catch (err) {
+    toast(err.message, true);
+  }
+});
+
+function renderInventory(parts, caption) {
+  $("#inventory-caption").textContent = caption || "Full in-order traversal (sorted by code).";
+  $("#btn-clear-filter").hidden = !caption;
+  const body = $("#inventory-body");
+  if (!parts.length) {
+    body.innerHTML = `<tr><td colspan="7" class="empty" style="padding:30px">No parts to show.</td></tr>`;
+    return;
+  }
+  body.innerHTML = parts.map((p) => `
+    <tr>
+      <td><code>${esc(p.code)}</code></td>
+      <td>${esc(p.name)}</td>
+      <td>${esc(p.system)}</td>
+      <td class="num${p.low_stock ? " low" : ""}">${p.stock}</td>
+      <td class="num">${money.format(p.cost)}</td>
+      <td>${esc(p.supplier)}</td>
+      <td><div class="actions">
+        <button class="btn small" data-act="view" data-code="${esc(p.code)}">View</button>
+        <button class="btn small" data-act="edit" data-code="${esc(p.code)}">Edit</button>
+        <button class="btn small danger" data-act="del" data-code="${esc(p.code)}">Delete</button>
+      </div></td>
+    </tr>`).join("");
+}
+
+$("#inventory-body").addEventListener("click", (e) => {
+  const btn = e.target.closest("button[data-act]");
+  if (!btn) return;
+  const code = btn.dataset.code;
+  if (btn.dataset.act === "view") { showTab("bst"); showDetail(code, true); }
+  if (btn.dataset.act === "edit") startEdit(state.inorder.find((p) => p.code === code));
+  if (btn.dataset.act === "del") deletePart(code);
+});
+
+$("#filter-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const f = e.target.elements;
+  const params = new URLSearchParams();
+  const labels = [];
+  if (f.system.value) { params.set("system", f.system.value); labels.push(f.system.value); }
+  if (f.supplier.value.trim()) { params.set("supplier", f.supplier.value.trim()); labels.push(`supplier "${f.supplier.value.trim()}"`); }
+  if (f.min_cost.value) { params.set("min_cost", f.min_cost.value); labels.push(`cost ≥ ${money.format(f.min_cost.value)}`); }
+  if (f.max_cost.value) { params.set("max_cost", f.max_cost.value); labels.push(`cost ≤ ${money.format(f.max_cost.value)}`); }
+  if (f.low_stock.checked) { params.set("max_stock", state.stats.low_stock_threshold); labels.push("low stock"); }
+  try {
+    const r = await api("GET", `/api/filter?${params}`);
+    showTab("inventory");
+    renderInventory(r.results, labels.length
+      ? `Filter (${labels.join(", ")}): ${r.results.length} of ${state.stats.weight} parts, in in-order.`
+      : null);
+    if (labels.length) animateSequence(r.results.map((p) => p.code));
+  } catch (err) {
+    toast(err.message, true);
+  }
+});
+$("#filter-form").addEventListener("reset", () => renderInventory(state.inorder, null));
+
+$("#range-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const from = e.target.elements.from.value.trim();
+  const to = e.target.elements.to.value.trim();
+  try {
+    const r = await api("GET", `/api/range?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
+    showTab("inventory");
+    renderInventory(r.results, `Codes between ${from.toUpperCase()} and ${to.toUpperCase()}: ${plural(r.results.length, "part")} (range search that prunes BST branches).`);
+  } catch (err) {
+    toast(err.message, true);
+  }
+});
+
+$("#btn-clear-filter").addEventListener("click", () => {
+  $("#filter-form").reset();
+  renderInventory(state.inorder, null);
+});
+
+let lastTraversal = [];
+
+async function loadTraversal(kind) {
+  currentTraversal = kind;
+  $$("#traversal-buttons .seg-btn").forEach((b) => b.classList.toggle("active", b.dataset.kind === kind));
+  $("#traversal-desc").textContent = TRAVERSAL_TEXT[kind];
+  try {
+    const r = await api("GET", `/api/traversal/${kind}`);
+    lastTraversal = r.results.map((p) => p.code);
+    $("#traversal-seq").innerHTML = r.results.length
+      ? r.results.map((p) => `<li><code>${esc(p.code)}</code><span>${esc(shorten(p.name, 22))}</span></li>`).join("")
+      : `<li>Empty tree</li>`;
+  } catch (err) {
+    toast(err.message, true);
+  }
+}
+
+$("#traversal-buttons").addEventListener("click", (e) => {
+  const btn = e.target.closest(".seg-btn");
+  if (btn) loadTraversal(btn.dataset.kind);
+});
+
+$("#btn-animate").addEventListener("click", () => {
+  showTab("bst");
+  closeDetail();
+  $("#tree-wrap").scrollIntoView({ behavior: "smooth", block: "start" });
+  animateSequence(lastTraversal);
+});
+
+function assemblyItem(node) {
+  if (node.kind === "part") {
+    const p = node.part;
+    return `<li><div class="a-node part" data-code="${esc(p.code)}">
+      <code>${esc(p.code)}</code><span class="grow">${esc(p.name)}</span>
+      <span class="meta">stock ${p.stock}${p.low_stock ? " ⚠" : ""} · ${money.format(p.cost)} · ${esc(p.supplier)}</span>
+    </div></li>`;
+  }
+  const caret = node.kind === "system" ? `<span class="caret">▾</span>` : "";
+  const children = node.children.length ? `<ul>${node.children.map(assemblyItem).join("")}</ul>` : "";
+  return `<li><div class="a-node ${node.kind}">${caret}<span class="grow">${esc(node.name)}</span>
+    <span class="meta">${plural(node.parts, "part")} · degree ${node.degree} · ${money.format(node.total_cost)}</span>
+  </div>${children}</li>`;
+}
+
+async function loadAssembly() {
+  try {
+    const r = await api("GET", "/api/assembly");
+    $("#assembly-stats").innerHTML = `
+      <span>Weight <strong>${r.weight}</strong></span>
+      <span>Height <strong>${r.height}</strong></span>
+      <span>Order <strong>${r.order}</strong></span>`;
+    $("#assembly-tree").innerHTML = `<ul>${assemblyItem(r.tree)}</ul>`;
+  } catch (err) {
+    toast(err.message, true);
+  }
+}
+
+$("#assembly-tree").addEventListener("click", (e) => {
+  const sys = e.target.closest(".a-node.system");
+  if (sys) { sys.parentElement.classList.toggle("collapsed"); return; }
+  const piece = e.target.closest(".a-node.part");
+  if (piece) { showTab("bst"); showDetail(piece.dataset.code, true); }
+});
+
+$$(".tab").forEach((t) => t.addEventListener("click", () => showTab(t.dataset.tab)));
+
+$("#btn-balance").addEventListener("click", async () => {
+  try { applySnapshot(await api("POST", "/api/balance")); } catch (err) { toast(err.message, true); }
+});
+
+$("#btn-reset").addEventListener("click", async () => {
+  if (!confirm("Restore the sample parts? Your changes will be lost.")) return;
+  try {
+    closeDetail();
+    resetForm();
+    applySnapshot(await api("POST", "/api/reset"));
+  } catch (err) {
+    toast(err.message, true);
+  }
+});
+
+api("GET", "/api/tree").then(applySnapshot).catch((err) => toast(err.message, true));
+  </script>
+</body>
+</html>
